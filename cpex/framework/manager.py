@@ -31,8 +31,11 @@ Examples:
 import asyncio
 import copy
 import logging
+import os
+import sys
 import threading
 from typing import Any, Optional, Union
+from pathlib import Path
 
 # Third-Party
 from pydantic import BaseModel, RootModel
@@ -70,6 +73,13 @@ CONTEXT_MAX_AGE = 3600  # 1 hour
 HTTP_AUTH_CHECK_PERMISSION_HOOK = "http_auth_check_permission"
 DECISION_PLUGIN_METADATA_KEY = "_decision_plugin"
 RESERVED_INTERNAL_METADATA_KEYS = frozenset({DECISION_PLUGIN_METADATA_KEY})
+
+# Allowed plugin dirs to use as plugin search paths
+ALLOWED_PLUGIN_DIRS = {
+    os.path.abspath("/var/lib/cpex/plugins"),
+    os.path.abspath("/private/var/lib/cpex/plugins"),
+    os.getcwd(),
+}
 
 
 class PluginTimeoutError(Exception):
@@ -814,7 +824,15 @@ class PluginManager:
                 logger.debug("Plugin registry not empty before initialize; clearing stale plugins")
                 await self._registry.shutdown()
 
+            # Configure search path based on safe plugin_dirs
+            plugin_dirs = self._config.plugin_dirs if self._config and self._config.plugin_dirs else []
+            for plugin_dir in plugin_dirs:
+                resolved = str(Path(plugin_dir).resolve())
+                if resolved.startswith(tuple(ALLOWED_PLUGIN_DIRS)):
+                    sys.path.append(resolved)
+
             plugins = self._config.plugins if self._config and self._config.plugins else []
+
             loaded_count = 0
 
             for plugin_config in plugins:
