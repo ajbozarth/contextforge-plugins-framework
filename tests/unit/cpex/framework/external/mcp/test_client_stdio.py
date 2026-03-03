@@ -41,7 +41,7 @@ from cpex.framework import (
     ToolPostInvokePayload,
     ToolPreInvokePayload,
 )
-from plugins.regex_filter.search_replace import SearchReplaceConfig
+from tests.unit.cpex.fixtures.plugins.search_replace import SearchReplaceConfig
 
 
 @pytest.mark.asyncio

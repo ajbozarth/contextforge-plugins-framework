@@ -1,7 +1,7 @@
 plugins:
   # Self-contained Search Replace Plugin
   - name: "HeadersMetaDataPlugin"
-    kind: "tests.unit.mcpgateway.plugins.fixtures.plugins.headers.HeadersMetaDataPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.headers.HeadersMetaDataPlugin"
     description: "A tools header plugin."
     version: "0.1"
     author: "ContextForge Team"

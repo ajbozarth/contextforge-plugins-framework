@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Location: ./tests/unit/mcpgateway/plugins/fixtures/plugins/cross_hook_context.py
+"""Location: ./tests/unit/cpex/fixtures/plugins/cross_hook_context.py
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
 
@@ -16,7 +16,7 @@ This plugin demonstrates sharing context across different hook types:
 
 import logging
 
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
     HttpAuthCheckPermissionPayload,
     HttpAuthCheckPermissionResult,
     HttpPreRequestPayload,
@@ -43,9 +43,7 @@ class CrossHookContextPlugin(Plugin):
     RESOURCE_PRE_FETCH, and PROMPT_PRE_FETCH.
     """
 
-    async def http_pre_request(
-        self, payload: HttpPreRequestPayload, context: PluginContext
-    ) -> HttpPreRequestResult:
+    async def http_pre_request(self, payload: HttpPreRequestPayload, context: PluginContext) -> HttpPreRequestResult:
         """Store initial context data in HTTP_PRE_REQUEST hook.
 
         Args:
@@ -111,9 +109,7 @@ class CrossHookContextPlugin(Plugin):
                 f"global_context.request_id={context.global_context.request_id}"
             )
 
-        logger.info(
-            f"✅ [CrossHookContextPlugin] Request ID verified: {context.global_context.request_id}"
-        )
+        logger.info(f"✅ [CrossHookContextPlugin] Request ID verified: {context.global_context.request_id}")
 
         # Add permission-specific data
         context.state["permission_checked"] = True
@@ -121,9 +117,7 @@ class CrossHookContextPlugin(Plugin):
 
         return HttpAuthCheckPermissionResult(continue_processing=True)
 
-    async def tool_pre_invoke(
-        self, payload: ToolPreInvokePayload, context: PluginContext
-    ) -> ToolPreInvokeResult:
+    async def tool_pre_invoke(self, payload: ToolPreInvokePayload, context: PluginContext) -> ToolPreInvokeResult:
         """Verify context from HTTP hooks is accessible in tool hooks.
 
         Args:
@@ -208,9 +202,7 @@ class CrossHookContextPlugin(Plugin):
 
         return ResourcePreFetchResult(continue_processing=True)
 
-    async def prompt_pre_fetch(
-        self, payload: PromptPrehookPayload, context: PluginContext
-    ) -> PromptPrehookResult:
+    async def prompt_pre_fetch(self, payload: PromptPrehookPayload, context: PluginContext) -> PromptPrehookResult:
         """Verify context from HTTP hooks is accessible in prompt hooks.
 
         Args:

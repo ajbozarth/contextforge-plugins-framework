@@ -1,6 +1,6 @@
 plugins:
   - name: "SynonymsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     description: "A plugin for finding and replacing synonyms."
     version: "0.1"
     author: "ContextForge Team"
@@ -21,7 +21,7 @@ plugins:
           replace: sullen
   # Self-contained Search Replace Plugin
   - name: "ReplaceBadWordsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     description: "A plugin for finding and replacing words."
     version: "0.1"
     author: "ContextForge Team"

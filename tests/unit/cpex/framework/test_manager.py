@@ -23,7 +23,7 @@ from cpex.framework import (
     ToolPostInvokePayload,
     ToolPreInvokePayload,
 )
-from plugins.regex_filter.search_replace import SearchReplaceConfig
+from tests.unit.cpex.fixtures.plugins.search_replace import SearchReplaceConfig
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_manager_single_transformer_prompt_plugin():
     manager = PluginManager("./tests/unit/cpex/fixtures/configs/valid_single_plugin.yaml")
     await manager.initialize()
     assert manager.config.plugins[0].name == "ReplaceBadWordsPlugin"
-    assert manager.config.plugins[0].kind == "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    assert manager.config.plugins[0].kind == "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     assert manager.config.plugins[0].description == "A plugin for finding and replacing words."
     assert manager.config.plugins[0].version == "0.1"
     assert manager.config.plugins[0].author == "ContextForge Team"
@@ -70,7 +70,7 @@ async def test_manager_multiple_transformer_preprompt_plugin():
     await manager.initialize()
     assert manager.initialized
     assert manager.config.plugins[0].name == "SynonymsPlugin"
-    assert manager.config.plugins[0].kind == "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    assert manager.config.plugins[0].kind == "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     assert manager.config.plugins[0].description == "A plugin for finding and replacing synonyms."
     assert manager.config.plugins[0].version == "0.1"
     assert manager.config.plugins[0].author == "ContextForge Team"
@@ -82,7 +82,7 @@ async def test_manager_multiple_transformer_preprompt_plugin():
     assert srconfig.words[0].search == "happy"
     assert srconfig.words[0].replace == "gleeful"
     assert manager.config.plugins[1].name == "ReplaceBadWordsPlugin"
-    assert manager.config.plugins[1].kind == "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    assert manager.config.plugins[1].kind == "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     assert manager.config.plugins[1].description == "A plugin for finding and replacing words."
     assert manager.config.plugins[1].version == "0.1"
     assert manager.config.plugins[1].author == "ContextForge Team"

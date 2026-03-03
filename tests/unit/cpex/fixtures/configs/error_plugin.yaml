@@ -1,7 +1,7 @@
 plugins:
   # Self-contained Search Replace Plugin
   - name: "ErrorPlugin"
-    kind: "tests.unit.mcpgateway.plugins.fixtures.plugins.error.ErrorPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.error.ErrorPlugin"
     description: "An error plugin."
     version: "0.1"
     author: "ContextForge Team"

@@ -1,6 +1,6 @@
 plugins:
   - name: "CrossHookContextPlugin"
-    kind: "tests.unit.mcpgateway.plugins.fixtures.plugins.cross_hook_context.CrossHookContextPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.cross_hook_context.CrossHookContextPlugin"
     description: "Test plugin that demonstrates cross-hook context sharing"
     version: "1.0.0"
     author: "Test Author"

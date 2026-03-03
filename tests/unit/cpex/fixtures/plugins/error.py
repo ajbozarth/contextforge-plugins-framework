@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Location: ./tests/unit/mcpgateway/plugins/fixtures/plugins/error.py
+"""Location: ./tests/unit/cpex/fixtures/plugins/error.py
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
 Authors: Mihai Criveti
@@ -8,7 +8,7 @@ Authors: Mihai Criveti
 Error plugin.
 """
 
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
     PluginContext,
     Plugin,
     PromptPosthookPayload,
@@ -75,7 +75,9 @@ class ErrorPlugin(Plugin):
         """
         raise ValueError("Sadly! Tool postfetch is broken!")
 
-    async def resource_post_fetch(self, payload: ResourcePostFetchPayload, context: PluginContext) -> ResourcePostFetchResult:
+    async def resource_post_fetch(
+        self, payload: ResourcePostFetchPayload, context: PluginContext
+    ) -> ResourcePostFetchResult:
         """Plugin hook run after a resource was fetched.
 
         Args:
@@ -87,7 +89,9 @@ class ErrorPlugin(Plugin):
         """
         return ResourcePostFetchResult(continue_processing=True)
 
-    async def resource_pre_fetch(self, payload: ResourcePreFetchPayload, context: PluginContext) -> ResourcePreFetchResult:
+    async def resource_pre_fetch(
+        self, payload: ResourcePreFetchPayload, context: PluginContext
+    ) -> ResourcePreFetchResult:
         """Plugin hook run before a resource was fetched.
 
         Args:

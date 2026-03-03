@@ -1,7 +1,7 @@
 plugins:
   # Self-contained Deny List Plugin
   - name: "DenyListPlugin"
-    kind: "plugins.deny_filter.deny.DenyListPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.deny_filter.DenyListPlugin"
     description: "A plugin that implements a deny list filter."
     version: "0.1"
     author: "ContextForge Team"
@@ -21,7 +21,7 @@ plugins:
         - revolutionary
   # Self-contained Search Replace Plugin
   - name: "ReplaceBadWordsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     description: "A plugin for finding and replacing words."
     version: "0.1"
     author: "ContextForge Team"
@@ -41,7 +41,7 @@ plugins:
         - search: crud
           replace: yikes
   - name: "ResourceFilterExample"
-    kind: "plugins.resource_filter.resource_filter.ResourceFilterPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.resource_filter.ResourceFilterPlugin"
     description: "Demonstrates resource pre/post fetch hooks for filtering and validation"
     version: "1.0.0"
     author: "ContextForge Team"

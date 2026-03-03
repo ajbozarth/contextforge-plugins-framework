@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Location: ./tests/unit/mcpgateway/plugins/fixtures/plugins/headers.py
+"""Location: ./tests/unit/cpex/fixtures/plugins/headers.py
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
 Authors: Mihai Criveti, Fred Araujo
@@ -10,8 +10,8 @@ Headers plugin.
 
 import logging
 
-from mcpgateway.plugins.framework.constants import GATEWAY_METADATA, TOOL_METADATA
-from mcpgateway.plugins.framework import (
+from cpex.framework.constants import GATEWAY_METADATA, TOOL_METADATA
+from cpex.framework import (
     PluginContext,
     Plugin,
     HttpHeaderPayload,
@@ -113,7 +113,9 @@ class HeadersMetaDataPlugin(Plugin):
             assert gateway_meta.url.host == "example.com"
         return ToolPostInvokeResult(continue_processing=True)
 
-    async def resource_post_fetch(self, payload: ResourcePostFetchPayload, context: PluginContext) -> ResourcePostFetchResult:
+    async def resource_post_fetch(
+        self, payload: ResourcePostFetchPayload, context: PluginContext
+    ) -> ResourcePostFetchResult:
         """Plugin hook run after a resource was fetched.
 
         Args:
@@ -125,7 +127,9 @@ class HeadersMetaDataPlugin(Plugin):
         """
         return ResourcePostFetchResult(continue_processing=True)
 
-    async def resource_pre_fetch(self, payload: ResourcePreFetchPayload, context: PluginContext) -> ResourcePreFetchResult:
+    async def resource_pre_fetch(
+        self, payload: ResourcePreFetchPayload, context: PluginContext
+    ) -> ResourcePreFetchResult:
         """Plugin hook run before a resource was fetched.
 
         Args:
@@ -194,7 +198,9 @@ class HeadersPlugin(Plugin):
         """
         raise ValueError("Sadly! Tool postfetch is broken!")
 
-    async def resource_post_fetch(self, payload: ResourcePostFetchPayload, context: PluginContext) -> ResourcePostFetchResult:
+    async def resource_post_fetch(
+        self, payload: ResourcePostFetchPayload, context: PluginContext
+    ) -> ResourcePostFetchResult:
         """Plugin hook run after a resource was fetched.
 
         Args:
@@ -206,7 +212,9 @@ class HeadersPlugin(Plugin):
         """
         return ResourcePostFetchResult(continue_processing=True)
 
-    async def resource_pre_fetch(self, payload: ResourcePreFetchPayload, context: PluginContext) -> ResourcePreFetchResult:
+    async def resource_pre_fetch(
+        self, payload: ResourcePreFetchPayload, context: PluginContext
+    ) -> ResourcePreFetchResult:
         """Plugin hook run before a resource was fetched.
 
         Args:

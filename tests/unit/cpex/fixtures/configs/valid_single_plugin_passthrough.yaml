@@ -1,7 +1,7 @@
 plugins:
   # Self-contained Search Replace Plugin
   - name: "PassThroughPlugin"
-    kind: "tests.unit.mcpgateway.plugins.fixtures.plugins.passthrough.PassThroughPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.passthrough.PassThroughPlugin"
     description: "A simple passthrough plugin."
     version: "0.1"
     author: "ContextForge Team"

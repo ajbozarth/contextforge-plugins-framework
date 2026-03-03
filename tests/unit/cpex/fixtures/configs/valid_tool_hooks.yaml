@@ -1,7 +1,7 @@
 plugins:
   # Test plugin for tool hooks
   - name: "ToolTestPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.search_replace.SearchReplacePlugin"
     description: "A plugin for testing tool hooks."
     version: "0.1"
     author: "ContextForge Team"

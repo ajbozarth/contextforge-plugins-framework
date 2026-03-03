@@ -22,7 +22,7 @@ from cpex.framework import GlobalContext, PluginContext, PluginMode, PromptPosth
 from cpex.framework.constants import EXTERNAL_PLUGIN_TYPE
 from cpex.framework.external.mcp.client import ExternalPlugin
 from cpex.framework.models import PluginConfig
-from plugins.regex_filter.search_replace import SearchReplaceConfig, SearchReplacePlugin
+from tests.unit.cpex.fixtures.plugins.search_replace import SearchReplaceConfig, SearchReplacePlugin
 
 
 def test_config_loader_load():

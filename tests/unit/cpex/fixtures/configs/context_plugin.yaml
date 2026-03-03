@@ -1,7 +1,7 @@
 plugins:
   # Self-contained Search Replace Plugin
   - name: "ContextPlugin"
-    kind: "tests.unit.mcpgateway.plugins.fixtures.plugins.context.ContextPlugin"
+    kind: "tests.unit.cpex.fixtures.plugins.context.ContextPlugin"
     description: "A context plugin."
     version: "0.1"
     author: "ContextForge Team"
