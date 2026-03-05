@@ -1,5 +1,5 @@
 <div>
-  <img alt="ContextForge Plugin Extensibility Framework (CPEX) logo" src="docs/images/cpex_v1.png" height=100">
+  <img alt="ContextForge Plugin Extensibility Framework (CPEX) logo" src="https://github.com/contextforge-org/contextforge-plugins-framework/blob/main/docs/images/cpex_v1.png?raw=true" height=100">
 </div>
 
 # CPEX — ContextForge Plugin Extensibility Framework
