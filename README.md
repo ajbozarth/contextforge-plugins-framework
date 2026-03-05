@@ -1,401 +1,299 @@
+<div>
+  <img alt="ContextForge Plugin Extensibility Framework (CPEX) logo" src="docs/images/cpex_v1.png" height=100">
+</div>
 
-## ContextForge Plugin Framework
+# CPEX — ContextForge Plugin Extensibility Framework
 
-The <u>C</u>ontextForge <u>P</u>lugin <u>Ex</u>tensibility (CPEX) framework allows applications to define extension points (hooks) and register plugins that are automatically invoked before and after critical execution points. It provides a robust mechanism for managing plugin lifecycles, enforcing execution timeouts, and handling plugin violations in a controlled and predictable way.
+<i>A lightweight, composable plugin framework for building extensible AI systems.</i>
 
-## Overview
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 
-CPEX introduces a lightweight, stack-agnostic hook system that intercepts execution points such as prompt handling, tool invocation, and data transformation, allowing plugins to observe, enforce, or modify behavior while remaining minimally invasive to host runtimes and application logic.
+## What's CPEX?
 
-The framework enables you to:
+CPEX lets you intercept, enforce, and extend application behavior through plugins without modifying core logic.
 
-- **Define custom hook points** throughout your application (these are the extension points to which plugins are registered)
-- **Create plugins** that execute at these hook points
-- **Control execution** with priorities, conditions, and modes (e.g., enforce, audit)
-- **Manage plugin lifecycle** with initialization and shutdown hooks
-- **Handle errors gracefully** with timeout protection and error isolation
-- **Deploy plugins** natively with the application or as an external service
+Define hook points in your application, write plugins that attach to them, and compose enforcement pipelines that run automatically.
 
-## Architecture
+```python
+from cpex.framework import hook, Plugin, PluginResult
 
-### Core Components
+class RateLimitPlugin(Plugin):
+    @hook("tool_pre_invoke")
+    async def check_rate_limit(self, payload, context):
+        if self.is_over_limit(context):
+            return PluginResult(
+                continue_processing=False,
+                violation=PluginViolation(reason="Rate limit exceeded", code="RATE_LIMIT")
+            )
+        return PluginResult(continue_processing=True)
+```
 
-- **Plugin**: Base class for implementing plugin logic
-- **PluginManager**: Manages plugin lifecycle and orchestrates execution
-- **PluginRegistry**: Maintains loaded plugin instances and hook mappings
-- **HookRegistry**: Maps hook types to their payload/result Pydantic models
-- **PluginConfig**: Configuration model for plugin metadata and behavior
+Register the plugin, and it runs at every hook invocation. No changes to your application logic.
 
-### Plugin Modes
+## Install
 
-- **ENFORCE**: Plugin violations block execution (production mode)
-- **ENFORCE_IGNORE_ERROR**: Violations block, but errors are ignored
-- **AUDIT**: Plugin runs but violations don't block (logs only)
-- **DISABLED**: Plugin is not loaded or executed
+```bash
+pip install cpex
+```
+
+## Why CPEX?
+
+AI systems interact with tools, APIs, data sources, and other agents. Adding guardrails, observability, or policy checks typically means embedding that logic directly into application code, leading to duplication, tight coupling, and drift.
+
+CPEX introduces **standardized interception hooks** between your application and its operations. Plugins attach to these hooks and run automatically, keeping enforcement logic separate from business logic.
+
+**What you can build with CPEX:**
+
+- **Security** — access control, prompt injection detection, data loss prevention
+- **Observability** — request tracing, audit logging, metrics collection
+- **Governance** — policy enforcement, compliance validation, approval workflows
+- **Reliability** — rate limiting, circuit breakers, response validation
+
+CPEX is designed for modern **AI and agent systems**, but works equally well for any application that needs **safe, modular extensibility**.
+
+## How It Works
+
+Your application defines **hooks** — named interception points before and after critical operations. Plugins register against these hooks and execute automatically when triggered.
+
+```
+Application  →  Hook Point  →  Plugin Manager  →  Application (remaining processing)  →  Result
+                                     │
+                              ┌──────┼──────┐
+                              ▼      ▼      ▼
+                          Plugin  Plugin  Plugin
+```
+
+The plugin manager handles registration, ordering, execution, timeouts, and error isolation. You get a deterministic pipeline with no surprises.
+
+## Core Concepts
+
+### Hooks
+
+A hook is a named interception point in your application. You define a hook where you want plugins to be able to run, then call it there.
+
+**Define hook models:**
+
+```python
+from cpex.framework import PluginPayload, PluginResult
+
+class EmailPayload(PluginPayload):
+    recipient: str
+    subject: str
+    body: str
+
+EmailResult = PluginResult[EmailPayload]
+```
+
+**Register it:**
+
+```python
+from cpex.framework.hooks.registry import get_hook_registry
+
+registry = get_hook_registry()
+registry.register_hook("email_pre_send", EmailPayload, EmailResult)
+```
+
+**Call the hook in your application:**
+
+```python
+async def send_email(recipient: str, subject: str, body: str):
+    payload = EmailPayload(recipient=recipient, subject=subject, body=body)
+    context = GlobalContext(request_id="req-123")
+
+    result, _ = await manager.invoke_hook("email_pre_send", payload, context)
+
+    if not result.continue_processing:
+        raise PolicyError(result.violation.reason)
+
+    # proceed with sending
+    await smtp.send(payload.recipient, payload.subject, payload.body)
+```
+
+CPEX also ships with built-in hooks for common AI operations (`tool_pre_invoke`, `tool_post_invoke`, `prompt_pre_fetch`, `prompt_post_fetch`, `resource_pre_fetch`, `resource_post_fetch`, `agent_pre_invoke`, `agent_post_invoke`). These follow the same pattern and are ready to use without registration.
+
+### Plugins
+
+A plugin is a class that implements one or more hook handlers. Use the `@hook` decorator to attach a method to any hook by name:
+
+```python
+from cpex.framework import hook, Plugin, PluginViolation, PluginResult
+
+class EmailFilterPlugin(Plugin):
+    @hook("email_pre_send")
+    async def block_external_domains(self, payload: EmailPayload, context) -> PluginResult:
+        allowed = self.config.config.get("allowed_domains", [])
+        domain = payload.recipient.split("@")[-1]
+
+        if allowed and domain not in allowed:
+            return PluginResult(
+                continue_processing=False,
+                violation=PluginViolation(
+                    reason="Domain not allowed",
+                    code="DOMAIN_BLOCKED",
+                    details={"domain": domain}
+                )
+            )
+
+        return PluginResult(continue_processing=True)
+```
+
+The `@hook` decorator decouples method names from hook names, which is useful when a plugin handles multiple hooks or when names would otherwise conflict.
+
+For built-in hooks, you can also use the naming convention directly (method name matches hook name) without a decorator:
+
+```python
+class ContentFilterPlugin(Plugin):
+    async def tool_pre_invoke(self, payload: ToolPreInvokePayload, context: PluginContext) -> ToolPreInvokeResult:
+        blocked = self.config.config.get("blocked_tools", [])
+        if payload.name in blocked:
+            return ToolPreInvokeResult(
+                continue_processing=False,
+                violation=PluginViolation(reason="Tool blocked by policy", code="TOOL_BLOCKED")
+            )
+        return ToolPreInvokeResult(continue_processing=True)
+```
+
+A plugin method can:
+
+- **Allow** execution to continue
+- **Block** execution with a violation
+- **Modify** the payload (using copy-on-write isolation)
+
+### Execution Modes
+
+Plugins run in phases in this order: `sequential` → `audit` → `concurrent` → `fire_and_forget`.
+
+| Mode | Execution | Can block? | State merged? | Use case |
+|------|-----------|:-----------:|:-------------:|---------|
+| `sequential` | One at a time, chained | Yes | Yes | Enforcement pipelines |
+| `audit` | One at a time, chained | No | No | Logging, monitoring |
+| `concurrent` | Parallel, fail-fast | Yes | Yes | Independent validations |
+| `fire_and_forget` | Background, after all phases | No | No | Telemetry, audit logs |
+| `disabled` | Not loaded | — | — | Plugin off |
+
+Error handling is configured separately with `on_error`, independent of mode:
+
+| `on_error` | Behavior |
+|-----------|---------|
+| `fail` | Pipeline halts, error propagates (default) |
+| `ignore` | Error logged; pipeline continues |
+| `disable` | Error logged; plugin auto-disabled; pipeline continues |
+
+### Plugin Manager
+
+The `PluginManager` orchestrates everything:
+
+```python
+from cpex.framework import PluginManager, GlobalContext
+from cpex.framework.hooks.tools import ToolPreInvokePayload
+
+manager = PluginManager("plugins/config.yaml")
+await manager.initialize()
+
+context = GlobalContext(request_id="req-123", user="alice")
+payload = ToolPreInvokePayload(name="web_search", args={"query": "CPEX framework"})
+
+result, plugin_contexts = await manager.invoke_hook("tool_pre_invoke", payload, context)
+
+if result.continue_processing:
+    # Proceed — use result.modified_payload if a plugin transformed it
+    pass
+else:
+    # A plugin blocked execution
+    print(f"Blocked: {result.violation.reason}")
+```
 
 ## Configuration
 
-### Plugin Configuration File
-
-Create a YAML configuration file (e.g., \`plugins/config.yaml\`):
+Plugins are configured in YAML:
 
 ```yaml
-plugin_settings:
-  enable_plugin_api: true
-  plugin_timeout: 30
-  fail_on_plugin_error: false
-  parallel_execution_within_band: false
-
 plugin_dirs:
   - ./plugins
 
 plugins:
-  - name: my_validation_plugin
-    description: Validates prompt inputs
-    author: Your Name
-    kind: my_app.plugins.ValidationPlugin
+  - name: email_filter
+    kind: my_app.plugins.EmailFilterPlugin
     version: 1.0.0
     hooks:
-      - prompt_pre_fetch
-    tags:
-      - validation
-      - security
-    mode: enforce
+      - email_pre_send
+    mode: sequential
     priority: 10
     config:
-      max_length: 1000
-      forbidden_words:
-        - spam
-        - test
+      allowed_domains:
+        - company.com
+        - partner.org
 ```
 
-### Configuration Fields
+### Priority
 
-- **name**: Unique plugin identifier
-- **description**: Human-readable description
-- **author**: Plugin author
-- **kind**: Fully qualified class name (e.g., \`my_app.plugins.MyPlugin\`)
-- **version**: Semantic version
-- **hooks**: List of hook types where plugin executes
-- **tags**: Categorization tags
-- **mode**: Execution mode (enforce/audit/disabled)
-- **priority**: Execution order (lower = higher priority)
-- **config**: Plugin-specific configuration dictionary
+Plugins are scheduled by mode, and execute in priority order within sequential bands (lower number = higher priority). Use this to ensure validation runs before transformation, and transformation runs before logging.
 
-## Creating Plugins
+**Plugin Scheduling**
 
-### 1. Define a New Hook Type (Base Plugin Class)
+At each hook invocation, plugins are grouped and scheduled by execution modes, following a strict group order:
 
-First, define the payload and result models for your hook:
-
-```python
-# my_app/plugins/models.py
-from pydantic import BaseModel
-from cpex.framework.models import PluginPayload, PluginResult
-
-class MyHookPayload(PluginPayload):
-    """Payload for my custom hook."""
-    data: str
-    metadata: dict[str, str] = {}
-
-class MyHookResult(PluginResult[MyHookPayload]):
-    """Result type for my custom hook."""
-    pass
+```
+sequential → audit → concurrent → fire_and_forget
 ```
 
-Create a base plugin class that defines the hook:
+Within sequential and audit groups, plugins execute in **priority order** (lower number = higher priority, e.g., `10` runs before `20`).
 
-```python
-# my_app/plugins/base.py
-from cpex.framework.base import Plugin
-from cpex.framework.models import PluginConfig, PluginContext
-from my_app.plugins.models import MyHookPayload, MyHookResult
+### Conditions
 
-class MyAppPlugin(Plugin):
-    """Base plugin for MyApp with custom hooks."""
-
-    def __init__(self, config: PluginConfig) -> None:
-        super().__init__(config)
-
-    async def my_custom_hook(
-        self,
-        payload: MyHookPayload,
-        context: PluginContext
-    ) -> MyHookResult:
-        """Custom hook for processing data.
-
-        Args:
-            payload: The data to process
-            context: Execution context with state
-
-        Returns:
-            Result indicating whether to continue processing
-        """
-        raise NotImplementedError(
-            f"'my_custom_hook' not implemented for plugin {self.name}"
-        )
-```
-
-### 2. Register Your Hook Types
-
-Register your hooks in the global hook registry:
-
-```python
-# my_app/plugins/__init__.py
-from cpex.framework.hook_registry import get_hook_registry
-from my_app.plugins.models import MyHookPayload, MyHookResult
-
-# Register your hook types
-registry = get_hook_registry()
-registry.register_hook(
-    hook_type="my_custom_hook",
-    payload_class=MyHookPayload,
-    result_class=MyHookResult
-)
-```
-
-### 3. Implement a Plugin
-
-Create a concrete plugin implementation:
-
-```python
-# my_app/plugins/validation.py
-from cpex.framework.models import PluginConfig, PluginContext, PluginViolation
-from my_app.plugins.base import MyAppPlugin
-from my_app.plugins.models import MyHookPayload, MyHookResult
-
-class ValidationPlugin(MyAppPlugin):
-    """Plugin that validates data."""
-
-    def __init__(self, config: PluginConfig) -> None:
-        super().__init__(config)
-        # Access plugin-specific config
-        self.max_length = config.config.get("max_length", 1000)
-        self.forbidden_words = config.config.get("forbidden_words", [])
-
-    async def my_custom_hook(
-        self,
-        payload: MyHookPayload,
-        context: PluginContext
-    ) -> MyHookResult:
-        """Validate the data."""
-        data = payload.data
-
-        # Check length
-        if len(data) > self.max_length:
-            return MyHookResult(
-                continue_processing=False,
-                violation=PluginViolation(
-                    reason="Data too long",
-                    description=f"Data length {len(data)} exceeds max {self.max_length}",
-                    code="DATA_TOO_LONG",
-                    details={"length": len(data), "max": self.max_length}
-                )
-            )
-
-        # Check for forbidden words
-        for word in self.forbidden_words:
-            if word.lower() in data.lower():
-                return MyHookResult(
-                    continue_processing=False,
-                    violation=PluginViolation(
-                        reason="Forbidden content",
-                        description=f"Data contains forbidden word: {word}",
-                        code="FORBIDDEN_WORD",
-                        details={"word": word}
-                    )
-                )
-
-        # Store state for later hooks
-        context.set_state("validated", True)
-
-        # All checks passed
-        return MyHookResult(
-            continue_processing=True,
-            metadata={"validated_by": self.name}
-        )
-```
-
-## Using the Plugin Manager
-
-### Basic Usage
-
-```python
-from cpex.framework import PluginManager
-from cpex.framework.models import GlobalContext
-from my_app.plugins.models import MyHookPayload
-
-# Initialize the manager with config file
-manager = PluginManager("plugins/config.yaml")
-
-# Initialize plugins (loads and registers all plugins)
-await manager.initialize()
-
-# Create a global context for the request
-context = GlobalContext(
-    request_id="req-123",
-    user="alice",
-    tenant_id="tenant-1",
-    server_id="server-1"
-)
-
-# Create your payload
-payload = MyHookPayload(
-    data="Hello, world!",
-    metadata={"source": "api"}
-)
-
-# Execute all plugins registered for this hook
-result, plugin_contexts = await manager.invoke_hook(
-    hook_type="my_custom_hook",
-    payload=payload,
-    global_context=context
-)
-
-# Check result
-if result.continue_processing:
-    # Use modified payload if any
-    processed_data = result.modified_payload.data if result.modified_payload else payload.data
-    print(f"Processed: {processed_data}")
-    print(f"Metadata: {result.metadata}")
-else:
-    # Handle violation
-    if result.violation:
-        print(f"Blocked: {result.violation.reason}")
-        print(f"Details: {result.violation.details}")
-
-# Shutdown when done
-await manager.shutdown()
-```
-
-### Advanced Usage
-
-#### Invoke a Specific Plugin
-
-```python
-from cpex.framework.models import PluginContext
-
-# Create a plugin-specific context
-plugin_context = PluginContext(global_context=context)
-
-# Invoke a specific plugin by name
-result = await manager.invoke_hook_for_plugin(
-    name="my_validation_plugin",
-    hook_type="my_custom_hook",
-    payload=payload,
-    context=plugin_context,
-    violations_as_exceptions=True  # Raise exceptions on violations
-)
-```
-
-#### Use Plugin Conditions
-
-Configure plugins to only run under certain conditions:
+Restrict plugins to specific contexts:
 
 ```yaml
 plugins:
-  - name: tenant_specific_plugin
+  - name: tenant_plugin
     kind: my_app.plugins.TenantPlugin
     hooks:
-      - my_custom_hook
-    mode: enforce
+      - tool_pre_invoke
+    mode: sequential
     conditions:
-      - tenant_ids:
-          - tenant-1
-          - tenant-2
-        server_ids:
-          - server-prod
+      - tenant_ids: [tenant-1, tenant-2]
+        server_ids: [server-prod]
 ```
 
-#### Modify Payloads
+## Testing
 
-Plugins can transform payloads:
+Plugins are plain async classes — test them directly:
 
 ```python
-async def my_custom_hook(self, payload: MyHookPayload, context: PluginContext) -> MyHookResult:
-    # Modify the payload
-    modified_payload = MyHookPayload(
-        data=payload.data.upper(),
-        metadata=payload.metadata
+import pytest
+from cpex.framework import PluginConfig, GlobalContext, PluginContext
+
+@pytest.mark.asyncio
+async def test_email_filter_blocks_external_domain():
+    config = PluginConfig(
+        name="test_filter",
+        kind="my_app.plugins.EmailFilterPlugin",
+        version="1.0.0",
+        hooks=["email_pre_send"],
+        config={"allowed_domains": ["company.com"]}
     )
+    plugin = EmailFilterPlugin(config)
 
-    return MyHookResult(
-        continue_processing=True,
-        modified_payload=modified_payload
-    )
+    payload = EmailPayload(recipient="user@external.com", subject="Hello", body="...")
+    context = PluginContext(global_context=GlobalContext(request_id="test-1"))
+
+    result = await plugin.block_external_domains(payload, context)
+    assert result.continue_processing is False
+    assert result.violation.code == "DOMAIN_BLOCKED"
 ```
-
-## MCP Plugin Example
-
-The framework includes built-in support for MCP (Model Context Protocol) plugins with pre-defined hooks:
-
-```python
-from cpex.framework import PluginConfig, PluginMode
-from cpex.mcp.entities import MCPPlugin, HookType
-from cpex.mcp.entities.models import (
-    PromptPrehookPayload,
-    PromptPrehookResult
-)
-
-class PromptFilterPlugin(MCPPlugin):
-    """Filter prompts before they're rendered."""
-
-    async def prompt_pre_fetch(
-        self,
-        payload: PromptPrehookPayload,
-        context: PluginContext
-    ) -> PromptPrehookResult:
-        """Check prompt name against allowed list."""
-        allowed_prompts = self.config.config.get("allowed_prompts", [])
-
-        if payload.name not in allowed_prompts:
-            return PromptPrehookResult(
-                continue_processing=False,
-                violation=PluginViolation(
-                    reason="Prompt not allowed",
-                    description=f"Prompt '{payload.name}' is not in allowed list",
-                    code="PROMPT_NOT_ALLOWED",
-                    details={"prompt": payload.name}
-                )
-            )
-
-        return PromptPrehookResult(continue_processing=True)
-
-# Configure in YAML
-# plugins:
-#   - name: prompt_filter
-#     kind: my_app.plugins.PromptFilterPlugin
-#     hooks:
-#       - prompt_pre_fetch
-#     mode: enforce
-#     config:
-#       allowed_prompts:
-#         - greeting
-#         - help
-```
-
-## Available MCP Hook Types
-
-The framework provides these built-in MCP hooks:
-
-- **prompt_pre_fetch**: Before prompt template is rendered
-- **prompt_post_fetch**: After prompt template is rendered
-- **tool_pre_invoke**: Before tool is invoked
-- **tool_post_invoke**: After tool execution completes
-- **resource_pre_fetch**: Before resource is fetched
-- **resource_post_fetch**: After resource is fetched
 
 ## External Plugins
 
-The framework supports external plugins via the MCP protocol:
+Plugins can run as standalone services, connected over MCP (Streamable HTTP), gRPC, or Unix domain sockets.
 
 ```yaml
 plugins:
   - name: remote_validator
     kind: external
     hooks:
-      - prompt_pre_fetch
-    mode: enforce
+      - tool_pre_invoke
+    mode: sequential
     mcp:
       proto: STREAMABLEHTTP
       url: https://plugin-server.example.com
@@ -403,78 +301,25 @@ plugins:
         certfile: /path/to/client-cert.pem
         keyfile: /path/to/client-key.pem
         ca_bundle: /path/to/ca-bundle.pem
-        verify: true
 ```
 
-## Testing
-
-### Unit Testing Plugins
+Build an external plugin server with the built-in `ExternalPluginServer`:
 
 ```python
-import pytest
-from cpex.framework.models import PluginConfig, GlobalContext, PluginContext
-from my_app.plugins.validation import ValidationPlugin
-from my_app.plugins.models import MyHookPayload
+from cpex.framework import ExternalPluginServer
 
-@pytest.mark.asyncio
-async def test_validation_plugin():
-    config = PluginConfig(
-        name="test_validator",
-        kind="my_app.plugins.ValidationPlugin",
-        version="1.0.0",
-        hooks=["my_custom_hook"],
-        config={
-            "max_length": 10,
-            "forbidden_words": ["bad"]
-        }
-    )
-
-    plugin = ValidationPlugin(config)
-
-    # Test valid data
-    payload = MyHookPayload(data="good")
-    context = PluginContext(
-        global_context=GlobalContext(request_id="test-1")
-    )
-
-    result = await plugin.my_custom_hook(payload, context)
-    assert result.continue_processing is True
-
-    # Test invalid data
-    payload = MyHookPayload(data="this is too long")
-    result = await plugin.my_custom_hook(payload, context)
-    assert result.continue_processing is False
-    assert result.violation.code == "DATA_TOO_LONG"
+server = ExternalPluginServer(plugins=[MyPlugin(config)])
+server.run()
 ```
 
-## Best Practices
+## Project Status
 
-1. **Use descriptive names** for plugins and hooks
-2. **Set appropriate priorities** (10-20 for validation, 50 for transformation, 90 for logging)
-3. **Use ENFORCE mode** in production for critical plugins
-4. **Use AUDIT mode** during development and testing
-5. **Keep plugins focused** on a single responsibility
-6. **Document plugin behavior** in configuration and docstrings
-7. **Handle errors gracefully** and provide clear violation messages
-8. **Use plugin context** to share state between hooks
-9. **Test plugins independently** before integration
-10. **Monitor plugin performance** and set appropriate timeouts
+CPEX is under active development as part of the [ContextForge](https://github.com/contextforge-org) ecosystem. The framework is designed to work across AI gateways, agent frameworks, LLM proxies, and tool servers.
 
-## Directory Structure
+## Contributing
 
-```
-my_app/
-├── plugins/
-│   ├── __init__.py          # Hook registration
-│   ├── base.py              # Base plugin class with custom hooks
-│   ├── models.py            # Payload and result models
-│   ├── validation.py        # Validation plugin
-│   └── transformation.py    # Transformation plugin
-├── config/
-│   └── plugins.yaml         # Plugin configuration
-└── main.py                  # Application entry point
-```
+Contributions are welcome. Open an issue, propose a plugin, or submit a pull request.
 
 ## License
 
-Apache-2.0
+[Apache 2.0](LICENSE)
