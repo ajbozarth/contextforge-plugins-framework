@@ -18,6 +18,7 @@ from typing import Optional
 
 # First-Party
 from cpex.framework.base import Plugin
+from cpex.framework.decorator import hook
 from cpex.framework.errors import PluginError, PluginViolationError
 from cpex.framework.external.mcp.server import ExternalPluginServer
 from cpex.framework.hooks.registry import HookRegistry, get_hook_registry
@@ -138,6 +139,7 @@ __all__ = [
     "get_hook_registry",
     "get_plugin_manager",
     "GlobalContext",
+    "hook",
     "HookRegistry",
     "HttpAuthCheckPermissionPayload",
     "HttpAuthCheckPermissionResult",
