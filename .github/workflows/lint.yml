@@ -10,6 +10,7 @@
 name: Lint & Static Analysis
 
 on:
+  workflow_call:
   push:
     branches: ["main"]
     paths:
