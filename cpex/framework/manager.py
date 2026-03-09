@@ -29,7 +29,6 @@ Examples:
 
 # Standard
 import asyncio
-import copy
 import logging
 import threading
 from typing import Any, Literal, Optional, Union
@@ -43,7 +42,7 @@ from cpex.framework.errors import PluginError, PluginViolationError, convert_exc
 from cpex.framework.hooks.policies import DefaultHookPolicy, HookPayloadPolicy, apply_policy
 from cpex.framework.loader.config import ConfigLoader
 from cpex.framework.loader.plugin import PluginLoader
-from cpex.framework.memory import copyonwrite, wrap_payload_for_isolation
+from cpex.framework.memory import _safe_deepcopy, copyonwrite, wrap_payload_for_isolation
 from cpex.framework.models import (
     Config,
     GlobalContext,
@@ -496,7 +495,7 @@ class PluginExecutor:
             return effective_payload
         if isinstance(effective_payload, BaseModel):
             return wrap_payload_for_isolation(effective_payload)
-        return copy.deepcopy(effective_payload)
+        return _safe_deepcopy(effective_payload)
 
     def _build_halt_result(
         self,
@@ -558,7 +557,7 @@ class PluginExecutor:
                 # Already scheduled — skip to avoid double-scheduling
                 continue
             task_input = (
-                wrap_payload_for_isolation(payload) if isinstance(payload, BaseModel) else copy.deepcopy(payload)
+                wrap_payload_for_isolation(payload) if isinstance(payload, BaseModel) else _safe_deepcopy(payload)
             )
             tmp_gc = GlobalContext(
                 request_id=global_context.request_id,
