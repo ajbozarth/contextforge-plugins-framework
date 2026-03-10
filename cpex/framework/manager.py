@@ -454,7 +454,14 @@ class PluginExecutor:
             if result.modified_payload is not None:
                 if apply_modifications:
                     current_payload, decision_plugin_name = self._apply_payload_modification(
-                        hook_ref, result, effective_payload, policy, hook_type, current_payload, decision_plugin_name
+                        hook_ref,
+                        result,
+                        plugin_input,
+                        policy,
+                        hook_type,
+                        current_payload,
+                        decision_plugin_name,
+                        apply_to=effective_payload,
                     )
                 else:
                     logger.debug(
@@ -510,8 +517,16 @@ class PluginExecutor:
         hook_type: str,
         current_payload: Optional[PluginPayload],
         decision_plugin_name: Optional[str],
+        *,
+        apply_to: Optional[PluginPayload] = None,
     ) -> tuple[Optional[PluginPayload], Optional[str]]:
         """Apply a plugin's payload modification, respecting the hook policy.
+
+        Args:
+            effective_payload: The baseline payload the plugin received (may be
+                an isolated/CoW copy).  Used for diffing to detect changes.
+            apply_to: The canonical pipeline payload to merge accepted changes
+                into.  When ``None``, changes are applied to *effective_payload*.
 
         Returns:
             Updated (current_payload, decision_plugin_name) tuple.
@@ -521,7 +536,7 @@ class PluginExecutor:
                 effective_payload, BaseModel
             ):
                 # Same-type BaseModel payload — apply field-level policy filtering
-                filtered = apply_policy(effective_payload, result.modified_payload, policy)
+                filtered = apply_policy(effective_payload, result.modified_payload, policy, apply_to=apply_to)
                 if filtered is not None:
                     return filtered, hook_ref.plugin_ref.name
             else:
